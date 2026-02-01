@@ -1,0 +1,116 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model hero {
+  id           Int       @id @default(autoincrement())
+  nama         String
+  id_produkimg Int
+  produkimg    produkimg @relation(fields: [id_produkimg], references: [id], onDelete: Cascade, map: "Hero_id_produkimg_fkey")
+  skin         skin?
+
+  @@index([id_produkimg], map: "Hero_id_produkimg_fkey")
+}
+
+model produk {
+  id                Int         @id @default(autoincrement())
+  nama              String      @unique(map: "Produk_nama_key")
+  harga_rupiah      Int
+  harga_ringgit     Int?
+  harga_dolar       Int?
+  deskripsi         String?
+  rank              String
+  author_id         Int?
+  status            Boolean     @default(true)
+  diskon            Float?
+  highlight         Boolean?    @default(false)
+  email_akun        String?
+  password_akun     String?
+  buyer_email       String?
+  buyer_lang        String?
+  merchant_order_id String?     @unique
+  users             users?      @relation(fields: [author_id], references: [id], map: "Produk_author_id_fkey")
+  produkimg         produkimg[]
+
+  @@index([author_id], map: "Produk_author_id_fkey")
+}
+
+model produkimg {
+  id        Int    @id @default(autoincrement())
+  link      String
+  id_produk Int
+  urutan    Int
+  hero      hero[]
+  produk    produk @relation(fields: [id_produk], references: [id], onDelete: Cascade, map: "ProdukImg_id_produk_fkey")
+
+  @@index([id_produk], map: "ProdukImg_id_produk_fkey")
+}
+
+model skin {
+  id         Int     @id @default(autoincrement())
+  nama       String
+  alias_skin String?
+  id_hero    Int     @unique(map: "Skin_id_hero_key")
+  hero       hero    @relation(fields: [id_hero], references: [id], onDelete: Cascade, map: "Skin_id_hero_fkey")
+}
+
+model users {
+  id       Int      @id @default(autoincrement())
+  username String   @unique(map: "Users_username_key")
+  password String
+  produk   produk[]
+}
+
+model banner {
+  id        Int     @id @default(autoincrement())
+  url       String
+  highlight Boolean @default(false)
+}
+
+model pengumuman {
+  id            Int     @id @default(autoincrement())
+  pengumuman    String  @db.Text
+  icon          String?
+  icon_position String? @default("start")
+  highlight     Boolean @default(false)
+}
+
+model kode_promo {
+  id             Int       @id @default(autoincrement())
+  kode           String    @unique(map: "kode") @db.VarChar(255)
+  diskon         Float     @db.Float
+  start_date     DateTime? @db.DateTime(0)
+  end_date       DateTime? @db.DateTime(0)
+  max_claims     Int?
+  current_claims Int       @default(0)
+  min_purchase   Float?    @db.Float
+  max_discount   Float?    @db.Float
+  active         Boolean   @default(true)
+  created_at     DateTime  @default(now()) @db.DateTime(0)
+  updated_at     DateTime  @default(now()) @updatedAt @db.DateTime(0)
+}
+
+model flash_sale {
+  id         Int      @id @default(autoincrement())
+  diskon     Int
+  start_date DateTime @db.DateTime(0)
+  end_date   DateTime @db.DateTime(0)
+}
+
+model survei {
+  id         Int    @id @default(autoincrement())
+  keterangan String
+}
+
+model VwSearch {
+  id     Int    @id
+  search String
+
+  @@map("vw_search")
+}

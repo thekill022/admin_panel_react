@@ -14,6 +14,8 @@ import PromoCode from './pages/PromoCode';
 import Survei from './pages/Survei';
 import FlashSale from './pages/FlashSale';
 import HighlightProduk from './pages/HighlightProduk';
+import JokiRanks from './pages/JokiRanks';
+import JokiPackages from './pages/JokiPackages';
 
 // Layout
 import Layout from './components/Layout';
@@ -55,6 +57,8 @@ function App() {
                         <Route path="survei" element={<Survei />} />
                         <Route path="flash-sale" element={<FlashSale />} />
                         <Route path="highlight-produk" element={<HighlightProduk />} />
+                        <Route path="joki-ranks" element={<JokiRanks />} />
+                        <Route path="joki-packages" element={<JokiPackages />} />
                     </Route>
 
                     <Route path="*" element={<Navigate to="/" replace />} />

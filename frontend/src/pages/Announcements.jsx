@@ -41,7 +41,7 @@ const Announcements = () => {
     const fetchAnnouncements = async () => {
         try {
             const response = await api.get('/pengumuman');
-            setAnnouncements(response.data);
+            setAnnouncements(response.data.data || response.data);
         } catch (error) {
             toast.error('Failed to fetch announcements');
         } finally {

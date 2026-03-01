@@ -4,16 +4,36 @@ import { authMiddleware } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Get all flash sales
+// Get all flash sales - returns active flash sale for client_view compatibility
 router.get('/', async (req, res) => {
+    try {
+        const now = new Date();
+        // First try to get an active flash sale for client_view
+        const activeFlashSale = await prisma.flash_sale.findFirst({
+            where: {
+                start_date: { lte: now },
+                end_date: { gte: now }
+            }
+        });
+
+        // Return in format expected by client_view: { data: {...} }
+        res.json({ data: activeFlashSale });
+    } catch (error) {
+        console.error('Get flash sales error:', error);
+        res.status(500).json({ error: 'Failed to fetch flash sales' });
+    }
+});
+
+// Get all flash sales (for admin panel)
+router.get('/all', authMiddleware, async (req, res) => {
     try {
         const flashSales = await prisma.flash_sale.findMany({
             orderBy: { start_date: 'desc' }
         });
         res.json(flashSales);
     } catch (error) {
-        console.error('Get flash sales error:', error);
-        res.status(500).json({ error: 'Failed to fetch flash sales' });
+        console.error('Get all flash sales error:', error);
+        res.status(500).json({ error: 'Failed to fetch all flash sales' });
     }
 });
 

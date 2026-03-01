@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bold, Italic, Underline, Highlighter } from 'lucide-react';
+import { Bold, Italic, Underline, Highlighter, Eraser } from 'lucide-react';
 
 const RichTextEditor = ({ content, onChange }) => {
     const editorRef = useRef(null);
     const [showColorPicker, setShowColorPicker] = useState(false);
 
-    // Highlight color options
+    // Highlight color options (tanpa 'None' karena ada tombol remove terpisah)
     const highlightColors = [
         { name: 'Yellow', value: '#fef08a', textColor: '#854d0e' },
         { name: 'Green', value: '#bbf7d0', textColor: '#14532d' },
@@ -13,8 +13,7 @@ const RichTextEditor = ({ content, onChange }) => {
         { name: 'Pink', value: '#fbcfe8', textColor: '#831843' },
         { name: 'Orange', value: '#fed7aa', textColor: '#7c2d12' },
         { name: 'Purple', value: '#e9d5ff', textColor: '#581c87' },
-        { name: 'Red', value: '#fecaca', textColor: '#7f1d1d' },
-        { name: 'None', value: 'transparent', textColor: 'inherit' },
+        { name: 'Red', value: '#450303ff', textColor: '#e41010ff' },
     ];
 
     useEffect(() => {
@@ -35,6 +34,30 @@ const RichTextEditor = ({ content, onChange }) => {
         handleInput();
     };
 
+    // Helper function untuk mencari parent span dengan background-color
+    const findHighlightSpan = (node) => {
+        let current = node;
+        while (current && current !== editorRef.current) {
+            if (current.nodeType === 1 && current.tagName === 'SPAN' && current.style.backgroundColor) {
+                return current;
+            }
+            current = current.parentNode;
+        }
+        return null;
+    };
+
+    // Helper function untuk mencari parent font tag
+    const findFontTag = (node) => {
+        let current = node;
+        while (current && current !== editorRef.current) {
+            if (current.nodeType === 1 && current.tagName === 'FONT') {
+                return current;
+            }
+            current = current.parentNode;
+        }
+        return null;
+    };
+
     const applyHighlight = (bgColor, textColor) => {
         const selection = window.getSelection();
         if (!selection.rangeCount) return;
@@ -42,20 +65,63 @@ const RichTextEditor = ({ content, onChange }) => {
         const range = selection.getRangeAt(0);
         const selectedText = range.toString();
 
-        if (!selectedText) return;
+        if (!selectedText) {
+            // No text selected, check if cursor is inside a highlighted span
+            const container = range.commonAncestorContainer;
+            const existingSpan = findHighlightSpan(container);
+            const existingFont = findFontTag(container);
 
-        // Create span with highlight
+            if (existingSpan) {
+                // Update existing highlight color
+                existingSpan.style.backgroundColor = bgColor;
+                if (existingFont) {
+                    existingFont.color = textColor;
+                }
+                setShowColorPicker(false);
+                handleInput();
+                editorRef.current?.focus();
+                return;
+            }
+            return;
+        }
+
+        // Check if selection is inside an existing highlight span
+        const container = range.commonAncestorContainer;
+        const existingSpan = findHighlightSpan(container);
+        const existingFont = findFontTag(container);
+
+        if (existingSpan && existingSpan.textContent === selectedText) {
+            // Selection matches the entire highlighted span, just update colors
+            existingSpan.style.backgroundColor = bgColor;
+            if (existingFont) {
+                existingFont.color = textColor;
+            } else {
+                // Wrap span with font tag for text color
+                const font = document.createElement('font');
+                font.color = textColor;
+                existingSpan.parentNode.insertBefore(font, existingSpan);
+                font.appendChild(existingSpan);
+            }
+            selection.removeAllRanges();
+            setShowColorPicker(false);
+            handleInput();
+            editorRef.current?.focus();
+            return;
+        }
+
+        // Create new highlight with font wrapper for text color
+        const font = document.createElement('font');
+        font.color = textColor;
+
         const span = document.createElement('span');
         span.style.backgroundColor = bgColor;
-        span.style.color = textColor;
-        span.style.padding = '0.25rem 0.75rem';
-        span.style.borderRadius = '0.5rem';
-        span.style.fontWeight = '600';
         span.textContent = selectedText;
+
+        font.appendChild(span);
 
         // Replace selection with highlighted span
         range.deleteContents();
-        range.insertNode(span);
+        range.insertNode(font);
 
         // Clear selection
         selection.removeAllRanges();
@@ -72,12 +138,23 @@ const RichTextEditor = ({ content, onChange }) => {
         const range = selection.getRangeAt(0);
         const container = range.commonAncestorContainer;
 
-        // If the selection is inside a span, remove the span
-        let span = container.nodeType === 3 ? container.parentElement : container;
+        // Find the highlight span
+        const span = findHighlightSpan(container);
 
-        if (span.tagName === 'SPAN' && span.style.backgroundColor) {
-            const text = document.createTextNode(span.textContent);
-            span.parentNode.replaceChild(text, span);
+        if (span) {
+            const text = span.textContent;
+            const textNode = document.createTextNode(text);
+
+            // Check if span is wrapped in font tag
+            const font = findFontTag(span);
+            if (font && font.firstChild === span && font.childNodes.length === 1) {
+                // Remove both font and span
+                font.parentNode.replaceChild(textNode, font);
+            } else {
+                // Just remove span
+                span.parentNode.replaceChild(textNode, span);
+            }
+
             handleInput();
         }
 
@@ -153,18 +230,20 @@ const RichTextEditor = ({ content, onChange }) => {
                                     </button>
                                 ))}
                             </div>
-                            <div className="mt-3 pt-3 border-t border-gray-200">
-                                <button
-                                    type="button"
-                                    onClick={removeHighlight}
-                                    className="w-full text-xs text-red-600 hover:bg-red-50 py-2 rounded transition-colors"
-                                >
-                                    Remove Highlight
-                                </button>
-                            </div>
                         </div>
                     )}
                 </div>
+
+                {/* Remove Highlight Button */}
+                <button
+                    type="button"
+                    onClick={removeHighlight}
+                    className="p-2 hover:bg-red-100 rounded transition-colors flex items-center gap-1 text-red-600"
+                    title="Remove Highlight"
+                >
+                    <Eraser size={18} />
+                    <span className="text-xs font-medium">Unstabilo</span>
+                </button>
 
                 <div className="flex-1"></div>
 

@@ -11,7 +11,9 @@ import {
     X,
     PieChart,
     Zap,
-    Star
+    Star,
+    ShieldCheck,
+    Briefcase
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -29,6 +31,8 @@ const Layout = () => {
         { path: '/announcements', icon: Megaphone, label: 'Announcements' },
         { path: '/promo-codes', icon: Tag, label: 'Promo Codes' },
         { path: '/survei', icon: PieChart, label: 'Survei' },
+        { path: '/joki-ranks', icon: ShieldCheck, label: 'Harga Joki Rank' },
+        { path: '/joki-packages', icon: Briefcase, label: 'Paket Joki' },
     ];
 
     const isActive = (path) => {

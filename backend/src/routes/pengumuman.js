@@ -10,7 +10,7 @@ router.get('/', async (req, res) => {
         const announcements = await prisma.pengumuman.findMany({
             orderBy: { id: 'desc' }
         });
-        res.json(announcements);
+        res.json({ data: announcements });
     } catch (error) {
         console.error('Get announcements error:', error);
         res.status(500).json({ error: 'Failed to fetch announcements' });

@@ -17,6 +17,20 @@ router.get('/', async (req, res) => {
     }
 });
 
+// Get highlighted banners (public - for client website)
+router.get('/highlight', async (req, res) => {
+    try {
+        const banners = await prisma.banner.findMany({
+            where: { highlight: true },
+            orderBy: { id: 'desc' }
+        });
+        res.json({ data: banners });
+    } catch (error) {
+        console.error('Get highlighted banners error:', error);
+        res.status(500).json({ error: 'Failed to fetch highlighted banners' });
+    }
+});
+
 // Create banner
 router.post('/', authMiddleware, async (req, res) => {
     try {

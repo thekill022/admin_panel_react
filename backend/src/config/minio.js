@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, CreateBucketCommand, HeadBucketCommand, PutBucketPolicyCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import dotenv from 'dotenv';
 
@@ -17,6 +17,54 @@ const minioClient = new S3Client({
 });
 
 const BUCKET_NAME = process.env.MINIO_BUCKET_NAME || 'merz-image';
+
+/**
+ * Ensure bucket exists and is publicly accessible
+ */
+const ensureBucketExists = async () => {
+    try {
+        // Check if bucket exists
+        await minioClient.send(new HeadBucketCommand({ Bucket: BUCKET_NAME }));
+        console.log(`Bucket ${BUCKET_NAME} already exists`);
+    } catch (error) {
+        if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
+            console.log(`Bucket ${BUCKET_NAME} not found, creating...`);
+            try {
+                // Create bucket
+                await minioClient.send(new CreateBucketCommand({ Bucket: BUCKET_NAME }));
+                console.log(`Bucket ${BUCKET_NAME} created successfully`);
+
+                // Set public read policy
+                const policy = {
+                    Version: '2012-10-17',
+                    Statement: [
+                        {
+                            Effect: 'Allow',
+                            Principal: '*',
+                            Action: ['s3:GetObject'],
+                            Resource: [`arn:aws:s3:::${BUCKET_NAME}/*`]
+                        }
+                    ]
+                };
+
+                await minioClient.send(new PutBucketPolicyCommand({
+                    Bucket: BUCKET_NAME,
+                    Policy: JSON.stringify(policy)
+                }));
+                console.log(`Bucket ${BUCKET_NAME} policy set to public read`);
+            } catch (createError) {
+                console.error('Error creating bucket:', createError);
+                throw createError;
+            }
+        } else {
+            console.error('Error checking bucket:', error);
+            throw error;
+        }
+    }
+};
+
+// Initialize bucket on module load
+ensureBucketExists().catch(console.error);
 
 /**
  * Upload file to MinIO
@@ -41,7 +89,12 @@ export const uploadToMinio = async (fileBuffer, fileName, mimeType) => {
         await minioClient.send(command);
 
         // Construct public URL
-        const publicUrl = `${process.env.MINIO_ENDPOINT}/${BUCKET_NAME}/${uniqueFileName}`;
+        // Use MINIO_PUBLIC_URL if defined (for production behind Nginx), otherwise fall back to MINIO_ENDPOINT
+        const baseUrl = process.env.MINIO_PUBLIC_URL || process.env.MINIO_ENDPOINT;
+
+        // Ensure no double slashes if baseUrl ends with /
+        const safeBaseUrl = baseUrl.replace(/\/$/, '');
+        const publicUrl = `${safeBaseUrl}/${BUCKET_NAME}/${uniqueFileName}`;
 
         return publicUrl;
     } catch (error) {

@@ -64,11 +64,62 @@ router.get('/', async (req, res) => {
     }
 });
 
+// Get highlighted products (public - for client website carousel)
+router.get('/highlight', async (req, res) => {
+    try {
+        // Tampilkan semua produk highlight termasuk yang sudah sold
+        const products = await prisma.produk.findMany({
+            where: {
+                highlight: true
+            },
+            include: {
+                produkimg: {
+                    orderBy: { urutan: 'asc' },
+                    include: {
+                        hero: {
+                            include: { skin: true }
+                        }
+                    }
+                }
+            },
+            orderBy: { id: 'desc' }
+        });
+
+        // Transform to count heroes and skins
+        const transformed = products.map(p => {
+            let heroCount = 0;
+            let skinCount = 0;
+
+            if (p.produkimg) {
+                p.produkimg.forEach(img => {
+                    if (img.hero) {
+                        heroCount += img.hero.length;
+                        img.hero.forEach(h => {
+                            if (h.skin) skinCount++;
+                        });
+                    }
+                });
+            }
+
+            return {
+                ...p,
+                heroes: heroCount,
+                skins: skinCount
+            };
+        });
+
+        res.json({ data: transformed });
+    } catch (error) {
+        console.error('Get highlighted products error:', error);
+        res.status(500).json({ error: 'Failed to fetch highlighted products' });
+    }
+});
+
 // Get products for website (public)
 router.get('/website', async (req, res) => {
     try {
+        // Tampilkan semua produk termasuk yang sudah sold
         const products = await prisma.produk.findMany({
-            where: { status: true },
             include: {
                 produkimg: {
                     orderBy: { urutan: 'asc' }
@@ -282,6 +333,33 @@ router.put('/:id', authMiddleware, async (req, res) => {
     } catch (error) {
         console.error('Update product error:', error);
         res.status(500).json({ error: 'Failed to update product' });
+    }
+});
+
+// Quick toggle product status (Active/Sold)
+router.patch('/:id/status', authMiddleware, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        if (typeof status !== 'boolean') {
+            return res.status(400).json({ error: 'Status must be a boolean value' });
+        }
+
+        const product = await prisma.produk.update({
+            where: { id: parseInt(id) },
+            data: { status },
+            select: {
+                id: true,
+                nama: true,
+                status: true
+            }
+        });
+
+        res.json(product);
+    } catch (error) {
+        console.error('Toggle product status error:', error);
+        res.status(500).json({ error: 'Failed to toggle product status' });
     }
 });
 

@@ -21,8 +21,8 @@ const FlashSale = () => {
 
     const fetchFlashSales = async () => {
         try {
-            const response = await api.get('/flash-sale');
-            setFlashSales(response.data);
+            const response = await api.get('/flash-sale/all');
+            setFlashSales(Array.isArray(response.data) ? response.data : []);
         } catch (error) {
             toast.error('Failed to fetch flash sales');
         } finally {

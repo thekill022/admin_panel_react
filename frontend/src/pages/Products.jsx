@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
-import { Plus, Edit, Trash2, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, ToggleLeft, ToggleRight } from 'lucide-react';
 
 const Products = () => {
     const [products, setProducts] = useState([]);
@@ -33,6 +33,19 @@ const Products = () => {
             fetchProducts();
         } catch (error) {
             toast.error('Failed to delete product');
+        }
+    };
+
+    const handleToggleStatus = async (id, currentStatus) => {
+        try {
+            await api.patch(`/produk/${id}/status`, { status: !currentStatus });
+            toast.success(`Product marked as ${!currentStatus ? 'Active' : 'Sold'}`);
+            // Update local state
+            setProducts(prev => prev.map(p =>
+                p.id === id ? { ...p, status: !currentStatus } : p
+            ));
+        } catch (error) {
+            toast.error('Failed to update product status');
         }
     };
 
@@ -121,14 +134,21 @@ const Products = () => {
                                         </span>
                                     </td>
                                     <td className="py-4 px-6">
-                                        <span
-                                            className={`px-2 py-1 rounded text-sm font-medium ${product.status
-                                                    ? 'bg-green-100 text-green-700'
-                                                    : 'bg-red-100 text-red-700'
+                                        <button
+                                            onClick={() => handleToggleStatus(product.id, product.status)}
+                                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all hover:shadow-md ${product.status
+                                                ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                                : 'bg-red-100 text-red-700 hover:bg-red-200'
                                                 }`}
+                                            title={`Click to mark as ${product.status ? 'Sold' : 'Active'}`}
                                         >
+                                            {product.status ? (
+                                                <ToggleRight size={18} className="text-green-600" />
+                                            ) : (
+                                                <ToggleLeft size={18} className="text-red-600" />
+                                            )}
                                             {product.status ? 'Active' : 'Sold'}
-                                        </span>
+                                        </button>
                                     </td>
                                     <td className="py-4 px-6 text-gray-700">
                                         {product.diskon ? `${product.diskon}%` : '-'}

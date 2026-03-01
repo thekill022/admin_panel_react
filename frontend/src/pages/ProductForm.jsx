@@ -42,6 +42,14 @@ const ProductForm = () => {
     const [fetching, setFetching] = useState(false);
 
     // Helper Utils
+    const generateUUID = () => {
+        if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+            return crypto.randomUUID();
+        }
+        // Fallback for non-secure contexts (HTTP)
+        return Date.now().toString(36) + Math.random().toString(36).substring(2);
+    };
+
     const extractNumberFromPriceText = (t) =>
         t?.match(/[\d.,]+/)?.[0]?.replace(/\./g, "").replace(/,/g, ".");
 
@@ -110,7 +118,7 @@ const ProductForm = () => {
     // Handlers
     const onFilesSelected = (files) => {
         const newImages = files.map((file, index) => ({
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             file,
             url: URL.createObjectURL(file), // Preview URL
             urutan: images.length + index + 1,
@@ -150,7 +158,7 @@ const ProductForm = () => {
             const formData = new FormData();
             formData.append("file", targetImage.file);
 
-            const response = await fetch('https://merzzmlbb.com/api/ocr', {
+            const response = await fetch('https://superadmin.merzzmlbb.com/ocr', {
                 method: "POST",
                 body: formData
             });
@@ -255,10 +263,18 @@ const ProductForm = () => {
                     uploadFormData.append('images', img.file);
                 });
 
-                // Assuming your upload endpoint returns array of URLs in order, or we map them
-                // NOTE: Current upload route might handle single or multiple.
-                // Let's use existing api.post('/upload', formData)
-                const uploadRes = await api.post('/upload', uploadFormData);
+                // Debug logging
+                console.log('Uploading files:', newFiles.length);
+                console.log('FormData entries:');
+                for (let pair of uploadFormData.entries()) {
+                    console.log(pair[0], pair[1]);
+                }
+
+                const uploadRes = await api.post('/upload/multiple', uploadFormData, {
+                    headers: {
+                        'Content-Type': undefined // Let browser set the correct multipart/form-data with boundary
+                    }
+                });
                 const urls = uploadRes.data.urls || (Array.isArray(uploadRes.data) ? uploadRes.data : []); // Adjust based on upload response
 
                 // Map back to images (assuming order is preserved)
@@ -349,10 +365,7 @@ const ProductForm = () => {
                                 <input type="number" value={discount} onChange={e => setDiscount(e.target.value)} className="input-field" placeholder="0" />
                             </div>
                         </div>
-                        <div>
-                            <label className="label">Description</label>
-                            <textarea value={description} onChange={e => setDescription(e.target.value)} className="input-field" rows={4} />
-                        </div>
+
 
                         {/* Final Prices */}
                         <div className="grid grid-cols-3 gap-4">

@@ -47,6 +47,10 @@ router.post('/single', authMiddleware, upload.single('image'), async (req, res) 
 // Upload multiple images
 router.post('/multiple', authMiddleware, upload.array('images', 10), async (req, res) => {
     try {
+        console.log('Received files:', req.files);
+        console.log('Files length:', req.files?.length);
+        console.log('Request headers:', req.headers);
+
         if (!req.files || req.files.length === 0) {
             return res.status(400).json({ error: 'No files uploaded' });
         }

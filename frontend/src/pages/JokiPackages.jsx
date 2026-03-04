@@ -150,7 +150,7 @@ const JokiPackages = () => {
             <div className="h-32 bg-gray-100 relative">
               {pkg.image ? (
                 <img
-                  src={pkg.image}
+                  src={import.meta.env.VITE_IMG_URL + pkg.image}
                   alt={pkg.nama_paket}
                   className="w-full h-full object-cover"
                 />

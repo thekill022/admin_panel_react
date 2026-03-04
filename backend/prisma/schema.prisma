@@ -109,31 +109,31 @@ model survei {
 }
 
 model ml_rank {
-  id               Int                @id @default(autoincrement())
-  nama             String
-  image            String?
-  urutan           Int                @default(0)
-  total_bintang    Int                @default(5)
-  joki_per_star    ml_joki_per_star[]
+  id            Int                @id @default(autoincrement())
+  nama          String
+  image         String?
+  urutan        Int                @default(0)
+  total_bintang Int                @default(5)
+  joki_per_star ml_joki_per_star[]
 }
 
 model ml_joki_per_star {
-  id                Int     @id @default(autoincrement())
-  rank_id           Int
-  harga_rupiah      Int
-  harga_ringgit     Float?
-  harga_dolar       Float?
-  ml_rank           ml_rank @relation(fields: [rank_id], references: [id], onDelete: Cascade)
+  id            Int      @id @default(autoincrement())
+  rank_id       Int
+  harga_rupiah  Decimal  @db.Decimal(12, 2)
+  harga_ringgit Decimal? @db.Decimal(12, 2)
+  harga_dolar   Decimal? @db.Decimal(12, 2)
+  ml_rank       ml_rank  @relation(fields: [rank_id], references: [id], onDelete: Cascade)
 }
 
 model ml_joki_paket {
-  id          Int     @id @default(autoincrement())
-  nama_paket  String
-  harga_rupiah Int
-  harga_ringgit Float?
-  harga_dolar   Float?
-  deskripsi   String? @db.Text
-  image       String?
+  id            Int      @id @default(autoincrement())
+  nama_paket    String
+  harga_rupiah  Decimal  @db.Decimal(12, 2)
+  harga_ringgit Decimal? @db.Decimal(12, 2)
+  harga_dolar   Decimal? @db.Decimal(12, 2)
+  deskripsi     String?  @db.Text
+  image         String?
 }
 
 model VwSearch {
